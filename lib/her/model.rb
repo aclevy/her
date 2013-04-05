@@ -48,6 +48,8 @@ module Her
       resource_path "#{base_path}/:id"
       uses_api Her::API.default_api
       primary_key 'id'
+      method_for :create, :post
+      method_for :update, :put
     end
 
     # Returns true if attribute_name is

@@ -139,15 +139,8 @@ module Her
       #   # Called via POST "/users"
       def save
         params = to_params
-        resource = self
-
-        if new?
-          callback = :create
-          method = :post
-        else
-          callback = :update
-          method = :put
-        end
+        callback = new? ? :create : :update
+        method = self.class.method_for(callback)
 
         run_callbacks callback do
           run_callbacks :save do
@@ -355,6 +348,18 @@ module Her
         def parse_root_in_json(value=nil)
           return @parse_root_in_json if value.nil?
           @parse_root_in_json = value
+        end
+
+        # Return or change the HTTP method used to create or update records
+        #
+        # @param [Symbol, String] action The behavior in question (`:create` or `:update`)
+        # @param [Symbol, String] method The HTTP method to use (`'PUT'`, `:post`, etc.)
+        def method_for(action, method = nil)
+          @method_for ||= {}
+          action = action.to_sym.downcase
+
+          return @method_for[action] if method.nil?
+          @method_for[action] = method.to_sym.downcase
         end
       end
     end
