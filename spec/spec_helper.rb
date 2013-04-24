@@ -15,8 +15,6 @@ RSpec.configure do |config|
   end
 
   config.after :each do
-    @spawned_models.each do |model|
-      Object.instance_eval { remove_const model } if Object.const_defined?(model)
-    end
+    clear_spawned_models
   end
 end

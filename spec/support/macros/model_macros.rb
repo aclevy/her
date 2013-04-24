@@ -2,25 +2,44 @@ module Her
   module Testing
     module Macros
       module ModelMacros
-        # Create a class and automatically inject Her::Model into it
-        def spawn_model(klass, &block)
-          if klass =~ /::/
-            base, submodel = klass.split(/::/).map{ |s| s.to_sym }
-            Object.const_set(base, Module.new) unless Object.const_defined?(base)
-            Object.const_get(base).module_eval do
-              remove_const submodel if constants.map(&:to_sym).include?(submodel)
-              submodel = const_set(submodel, Class.new)
-              submodel.send(:include, Her::Model)
-              submodel.class_eval(&block) if block_given?
+        def find_model(name, options = {})
+          parts = name.to_s.split(/::/).map(&:to_sym)
+          options.fetch(:pop, 0).times { parts.pop }
+
+          parts.inject(Object) do |parent_module, next_constant|
+            if parent_module
+              if parent_module.const_defined?(next_constant)
+                parent_module.const_get(next_constant)
+              elsif options[:create]
+                Module.new.tap { |m| parent_module.const_set(next_constant, m) }
+              end
             end
+          end
+        end
 
-            @spawned_models << base
-          else
-            Object.instance_eval { remove_const klass } if Object.const_defined?(klass)
-            Object.const_set(klass, Class.new).send(:include, Her::Model)
-            Object.const_get(klass).class_eval(&block) if block_given?
+        def find_model_base(name, options = {})
+          find_model name, options.merge(:pop => 1)
+        end
 
-            @spawned_models << klass.to_sym
+        # Create a class and automatically inject Her::Model into it
+        def spawn_model(klass, super_class = Object, &block)
+          klass = klass.to_s
+          super_class = find_model(super_class) unless super_class.is_a? Class
+          model_name = klass.split(/::/).last
+
+          find_model_base(klass, :create => true).module_eval do
+            remove_const model_name if constants.map(&:to_s).include?(model_name)
+            model = const_set(model_name, Class.new(super_class))
+            model.send :include, Her::Model
+            model.class_eval(&block) if block_given?
+          end
+
+          @spawned_models << klass.split(/::/).first.to_sym
+        end
+
+        def clear_spawned_models
+          @spawned_models.each do |model|
+            Object.instance_eval { remove_const model } if Object.const_defined?(model)
           end
         end
       end

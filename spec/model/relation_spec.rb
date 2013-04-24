@@ -44,12 +44,11 @@ describe Her::Model::Relation do
           end
         end
 
-        spawn_model("Foo::Model") do
+        spawn_model 'Foo::Model' do
           scope :page, lambda { |page| where(:page => page) }
         end
 
-        class User < Foo::Model; end
-        @spawned_models << :User
+        spawn_model 'User', 'Foo::Model'
       end
 
       it "propagates the scopes through its children" do
@@ -174,6 +173,7 @@ describe Her::Model::Relation do
           builder.use Her::Middleware::FirstLevelParseJSON
           builder.use Faraday::Request::UrlEncoded
           builder.adapter :test do |stub|
+            stub.get('/users?active=true&admin=true') { |env| ok! [] }
             stub.get("/users?active=true") { |env| ok! [{ :id => 3, :active => (params(env)[:active] == "true" ? true : false) }] }
           end
         end
@@ -181,9 +181,18 @@ describe Her::Model::Relation do
         spawn_model 'Foo::User' do
           default_scope lambda { where(:active => true) }
         end
+
+        spawn_model 'Foo::AdminUser', 'Foo::User' do
+          collection_path '/users'
+          default_scope lambda { where(:admin => true) }
+        end
       end
 
       it("should apply the scope to the request") { Foo::User.all.first.should be_active }
+
+      it 'should complement the default scope of its parent class' do
+        Foo::AdminUser.all.should have(0).items
+      end
     end
   end
 end
