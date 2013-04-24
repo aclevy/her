@@ -32,9 +32,7 @@ describe Her::Model::Parse do
     context "in the parent class" do
       before do
         spawn_model("Foo::Model") { include_root_in_json true }
-
-        class User < Foo::Model; end
-        @spawned_models << :User
+        spawn_model('User', 'Foo::Model')
       end
 
       it "wraps params with the class name" do
@@ -109,11 +107,7 @@ describe Her::Model::Parse do
         end
 
         spawn_model("Foo::Model") { parse_root_in_json true }
-        class User < Foo::Model
-          collection_path "/users"
-        end
-
-        @spawned_models << :User
+        spawn_model('User', 'Foo::Model') { collection_path '/users' }
       end
 
       it "parse the data with the symbol" do

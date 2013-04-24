@@ -339,8 +339,7 @@ describe Her::Model::ORM do
 
       context 'for children class' do
         before do
-          class User < Foo::User; end
-          @spawned_models << :User
+          spawn_model 'User', 'Foo::User'
         end
 
         it 'uses the custom method (PUT) instead of default method (POST)' do
